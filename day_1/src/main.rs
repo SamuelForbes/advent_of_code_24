@@ -11,7 +11,7 @@ fn main() {
     println!("Part Two: {} - {:?}", part_two(&input), start.elapsed());
 }
 
-fn part_one(input: &String) -> i32 {
+fn part_one(input: &str) -> i32 {
     let (mut left_hand_side, mut right_hand_side) = parse_input(input);
     left_hand_side.sort();
     right_hand_side.sort();
@@ -21,7 +21,7 @@ fn part_one(input: &String) -> i32 {
         .sum()
 }
 
-fn part_two(input: &String) -> i32 {
+fn part_two(input: &str) -> i32 {
     let (left_hand_side, right_hand_side) = parse_input(input);
     let mut right_hand_occurrences = get_right_hand_occurrences(right_hand_side);
 
@@ -41,7 +41,7 @@ fn get_right_hand_occurrences(right_hand_side: Vec<i32>) -> HashMap<i32, usize> 
     occurrence_counts
 }
 
-fn parse_input(input: &String) -> (Vec<i32>, Vec<i32>) {
+fn parse_input(input: &str) -> (Vec<i32>, Vec<i32>) {
     let mut left_hand_side = vec!();
     let mut right_hand_side = vec!();
 
