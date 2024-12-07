@@ -72,6 +72,10 @@ fn add_multiply_concat(search_value: u64, components: &Vec<u64>, operation: Oper
     if index == components.len() {
         return running_total;
     }
+    
+    if running_total > search_value {
+        return 0;
+    }
 
     match operation {
         Multiply => {
