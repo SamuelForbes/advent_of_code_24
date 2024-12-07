@@ -71,7 +71,10 @@ fn find_start(grid: &[Vec<char>]) -> (usize, usize) {
     panic!("Could not find start point");
 }
 
-fn get_track(grid: &[Vec<char>], starting_point: &(usize, usize)) -> Vec<((i32, i32), Direction)> {
+fn get_track(
+    grid: &Vec<Vec<char>>,
+    starting_point: &(usize, usize),
+) -> Vec<((i32, i32), Direction)> {
     let mut visited_locations = vec![];
     let mut current_location = (starting_point.0 as i32, starting_point.1 as i32);
     let mut current_direction = North;
@@ -85,7 +88,7 @@ fn get_track(grid: &[Vec<char>], starting_point: &(usize, usize)) -> Vec<((i32, 
     visited_locations
 }
 
-fn location_is_in_grid(location: &(i32, i32), grid: &[Vec<char>]) -> bool {
+fn location_is_in_grid(location: &(i32, i32), grid: &Vec<Vec<char>>) -> bool {
     location.1 >= 0
         && location.0 >= 0
         && location.1 < grid.len() as i32
@@ -93,7 +96,7 @@ fn location_is_in_grid(location: &(i32, i32), grid: &[Vec<char>]) -> bool {
 }
 
 fn get_new_location(
-    grid: &[Vec<char>],
+    grid: &Vec<Vec<char>>,
     current_location: (i32, i32),
     mut current_direction: Direction,
 ) -> ((i32, i32), Direction) {
@@ -117,51 +120,76 @@ fn get_new_location(
     (new_location, current_direction)
 }
 
-fn count_potential_obstructions(grid: &[Vec<char>], track: Vec<((i32, i32), Direction)>) -> usize {
-    let mut total = 0;
+fn count_potential_obstructions(
+    grid: &Vec<Vec<char>>,
+    track: Vec<((i32, i32), Direction)>,
+) -> usize {
+    let mut block_locations = HashSet::new();
     for index in 0..track.len() {
         if blocker_would_create_loop(grid, &track, index) {
-            total += 1;
+            block_locations.insert(get_next_location(&track[index].0, track[index].1));
         }
     }
 
-    total
+    block_locations.len()
 }
 
 fn blocker_would_create_loop(
-    grid: &[Vec<char>],
+    grid: &Vec<Vec<char>>,
     track: &[((i32, i32), Direction)],
     index: usize,
 ) -> bool {
-    let mut direction = track[index].1.next();
-    let mut transformation = direction.get_vector();
-    let mut turns = vec!(track[index].0);
-    let mut location = track[index].0.clone();
+    let result = get_new_grid(grid, track[index]);
+    
+    if result.is_none() {
+        return false;
+    }
+    
+    let new_grid = result.unwrap();
+    
+    let mut direction = track[index].1;
+    let mut turns = vec![];
+    let mut location = track[index].0;
 
-    while location_is_in_grid(&location, grid) {
-        let next_location = (location.0 + transformation.0, location.1 + transformation.1);
+    while location_is_in_grid(&location, &new_grid) {
+        let next_location = get_next_location(&location, direction);
 
-        if location_is_in_grid(&next_location, grid) {
-            let next_grid_square = grid[next_location.1 as usize][next_location.0 as usize];
-
+        if location_is_in_grid(&next_location, &new_grid) {
+            let next_grid_square = new_grid[next_location.1 as usize][next_location.0 as usize];
+            
             if next_grid_square == '#' {
-                turns.push(location);
+                if turns.len() > 3 && turns.contains(&(location,direction)) {
+                    return true;
+                }
+
+                turns.push((location, direction));
                 direction = direction.next();
-                transformation = direction.get_vector();
-                location = (location.0 + transformation.0, location.1 + transformation.1);
+                
             } else {
                 location = next_location;
             }
-
-            if turns.contains(&location) {
-                return true;
-            }
-
         } else {
             return false;
         }
     }
     false
+}
+
+fn get_next_location(location: &(i32, i32), direction: Direction) -> (i32, i32) {
+    let transformation = direction.get_vector();
+    (location.0 + transformation.0, location.1 + transformation.1)
+}
+
+fn get_new_grid(grid: &Vec<Vec<char>>, start: ((i32, i32), Direction)) -> Option<Vec<Vec<char>>> {
+    let mut new_grid = grid.clone();
+    let location_for_block = get_next_location(&start.0, start.1);
+
+    if location_is_in_grid(&location_for_block, grid) {
+        new_grid[location_for_block.1 as usize][location_for_block.0 as usize] = '#';
+        return Some(new_grid)
+    }
+
+    None
 }
 
 #[test]
