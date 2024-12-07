@@ -81,7 +81,7 @@ fn add_multiply_concat(search_value: u64, components: &Vec<u64>, operation: Oper
             running_total += components[index];
         },
         Concat => {
-            running_total = format!("{}{}", running_total.to_string(), components[index].to_string()).parse().unwrap();
+            running_total = format!("{}{}", running_total, components[index]).parse().unwrap();
         }
     }
 
@@ -105,7 +105,7 @@ fn parse_input(input: &str) -> Vec<(u64, Vec<u64>)> {
         .lines()
         .map(|line| {
             let parts = line.split(':').collect::<Vec<&str>>();
-            let test_value = parts[0].parse::<u64>().unwrap_or_else(|_| panic!("Could not parse {:?}", parts[0]));
+            let test_value = parts[0].parse::<u64>().unwrap();
             let component_values = parts[1]
                 .split_ascii_whitespace()
                 .map(|v| v.parse::<u64>().unwrap())
