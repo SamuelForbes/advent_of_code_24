@@ -1,5 +1,4 @@
 use std::fs;
-use std::ptr::replace;
 use std::time::Instant;
 
 #[derive(Debug)]
@@ -34,16 +33,21 @@ fn part_one(input: &str) -> u64 {
 
 fn part_two(input: &str) -> u64 {
     let instructions = input.trim().chars().collect::<Vec<char>>();
-    let disk = build_disk(instructions);
-    0
+    let blocks = build_disk_into_blocks(instructions);
+    
 
- //  compress_disk_by_file(disk)
- //        .iter()
- //        .enumerate()
- //        .map(|(index,item)| {
- //            if item.is_none() { 0 } else { index * item.unwrap() }
- //        })
- //        .sum()
+  compress_blocks(blocks)
+      .iter()
+      .flat_map(|item|{
+          if item.item.is_some() {
+              (0..item.quantity).map(|_| item.item.unwrap()).collect::<Vec<u64>>()
+          } else {
+              (0..item.quantity).map(|_| 0).collect::<Vec<u64>>()
+          }
+      })
+      .enumerate()
+      .map(|(index, item)| index as u64 * item)
+      .sum()
 }
 
 fn build_disk(instructions: Vec<char>) -> Vec<Option<u64>> {
@@ -127,10 +131,8 @@ fn compress_blocks(disk: Vec<DataBlock>) -> Vec<DataBlock> {
     let mut backward_index = disk.len() - 1;
 
     while backward_index > 0 {
-        println!("{backward_index}");
         let item_to_move = &compressed_disk[backward_index];
-        println!("Item to move {:?}", item_to_move);
-        if item_to_move.item.is_some() {
+        if item_to_move.item.is_some() && !item_to_move.moved {
             let spot_to_move = find_spot_for_block(&compressed_disk, backward_index);
             if let Some(spot) = spot_to_move {
                 let replaced_item = &compressed_disk[spot];
@@ -147,16 +149,21 @@ fn compress_blocks(disk: Vec<DataBlock>) -> Vec<DataBlock> {
                         start_index: replaced_item.start_index + item_to_move.quantity,
                         quantity: replaced_item.quantity - item_to_move.quantity,
                         moved: false
-                    })
+                    });
+                    backward_index += 1;
                 }
+                let replacements_length = replacements.len();
                 
-                compressed_disk.splice(spot..spot + 1, replacements);
-                compressed_disk[backward_index] = DataBlock{
+                compressed_disk.splice(backward_index..backward_index, vec!(DataBlock{
                     item: None,
-                    start_index: item_to_move.clone().start_index,
+                    start_index: item_to_move.start_index,
                     quantity: item_to_move.quantity,
                     moved: false
-                }
+                }));
+
+                compressed_disk.splice(spot..spot + 1, replacements);
+                
+                compressed_disk.remove(if replacements_length == 2 {backward_index} else {backward_index + 1});
             }
         }
         backward_index -= 1;
@@ -167,12 +174,10 @@ fn compress_blocks(disk: Vec<DataBlock>) -> Vec<DataBlock> {
 
 fn find_spot_for_block(disk: &Vec<DataBlock>, item_index: usize) -> Option<usize> {
     let mut forward_index = 0;
-    println!("Item to move index {item_index}");
     let item_to_move = &disk[item_index];
     
     while forward_index < item_index {
         let potential_spot = &disk[forward_index];
-        println!("{:?}, {}, {}, {}", item_to_move.item, forward_index, potential_spot.quantity, item_to_move.quantity);
         if potential_spot.item.is_none() && potential_spot.quantity >= item_to_move.quantity{
             return Some(forward_index);
         }
@@ -186,6 +191,5 @@ fn find_spot_for_block(disk: &Vec<DataBlock>, item_index: usize) -> Option<usize
 fn small_input() {
     let input = "2333133121414131402";
     assert_eq!(1928, part_one(input));
-    println!("{:?}", compress_blocks(build_disk_into_blocks(input.chars().collect())));
     assert_eq!(2858, part_two(input));
 }
